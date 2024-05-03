@@ -10,8 +10,8 @@
       <button @click="openModal" id="new">Criar Achados e Perdidos</button>
     </div>
 
-    <div class="table">
-      <table>
+    <div class="divTable">
+      <table> 
         <thead>
           <tr>
             <th>Título</th>
@@ -40,7 +40,56 @@
 </template>
 
 <script>
-import axios from 'axios';
+export default {
+  methods: {
+    toggleDarkMode() {
+      this.isDarkMode = !this.isDarkMode;
+    },
+    openModal() {
+      const modal = document.querySelector('.modal-container');
+      const sTitle = document.querySelector('#m-title');
+      const sDescription = document.querySelector('#m-description');
+
+      modal.classList.add('active');
+
+      modal.onclick = e => {
+        if (e.target.className.indexOf('modal-container') !== -1) {
+          modal.classList.remove('active');
+          sTitle.value = '';
+          sDescription.value = '';
+        }
+      };
+    },
+    saveItem() {
+      const title = document.getElementById('m-title').value;
+      const description = document.getElementById('m-description').value;
+
+      if (title.trim() === '' || description.trim() === '') {
+        alert('Por favor, preencha todos os campos.');
+        return;
+      }
+
+      const newItem = {
+        title: title,
+        description: description
+      };
+
+      this.insertItem(newItem);
+    },
+    insertItem(item) {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.title}</td>
+        <td>${item.description}</td>
+        <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
+        <td class="action"><button @click="deleteItem(item)"><i class='bx bx-trash'></i></button></td>
+      `;
+
+      document.querySelector('tbody').appendChild(tr);
+    }
+  }
+}
+/*import axios from 'axios';
 
 export default {
   methods: {
@@ -93,7 +142,7 @@ export default {
       document.querySelector('tbody').appendChild(tr);
     }
   }
-}
+}*/
 </script>
 
 <style>
@@ -167,19 +216,19 @@ button {
   background-color: #4070EC;
 }
 
-.table {
+.divTable {
   padding: 10px;
   width: auto;
   height: inherit;
   overflow: auto;
 }
 
-.table::-webkit-scrollbar {
+.divTable::-webkit-scrollbar {
   width: 12px;
   background-color: whitesmoke; 
 }
 
-.table::-webkit-scrollbar-thumb {
+.divTable::-webkit-scrollbar-thumb {
   border-radius: 10px;
   background-color: darkgray; 
 }

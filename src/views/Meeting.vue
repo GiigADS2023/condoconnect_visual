@@ -46,6 +46,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   methods: {
     openModal() {
@@ -60,13 +62,51 @@ export default {
       modal.onclick = e => {
         if (e.target.className.indexOf('modal-container') !== -1) {
           modal.classList.remove('active');
+          sTitle.value = '';
+          sDescription.value = '';
+          sDate.value = '';
+          sHour.value = '';
         }
-
-      sTitle.value = '';
-      sDescription.value = '';
-      sDate.value = '';
-      sHour.value = '';
       };
+    },
+    saveItem() {
+      const title = document.getElementById('m-title').value;
+      const description = document.getElementById('m-description').value;
+      const date = document.getElementById('m-date').value;
+      const hour = document.getElementById('m-hour').value;
+
+      if (title.trim() === '' || description.trim() === '' || date.trim() === '' || hour.trim() === '') {
+        alert('Por favor, preencha todos os campos.');
+        return;
+      }
+
+      const newItem = {
+        title: title,
+        description: description,
+        date: date,
+        hour: hour
+      };
+    
+      axios.post('http://localhost:8080/reunioes/', newItem).then(response => {
+        console.log(response.data);
+        this.insertItem(newItem);
+      })
+      .catch(error => {
+        console.error('Erro ao enviar dados:', error);
+      });
+    },
+    insertItem(item) {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.title}</td>
+        <td>${item.description}</td>
+        <td>${item.date}</td>
+        <td>${item.hour}</td>
+        <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
+        <td class="action"><button @click="deleteItem(item)"><i class='bx bx-trash'></i></button></td>
+      `;
+    
+      document.querySelector('tbody').appendChild(tr);
     }
   }
 }
