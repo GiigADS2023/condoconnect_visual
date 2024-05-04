@@ -52,48 +52,49 @@ export default {
   methods: {
     openModal() {
       const modal = document.querySelector('.modal-container');
-      const sTitle = document.querySelector('#m-title');
-      const sDescription = document.querySelector('#m-description');
-      const sDate = document.querySelector('#m-date');
-      const sHour = document.querySelector('#m-hour');
+      const sTitulo = document.querySelector('#m-title');
+      const sDescricao = document.querySelector('#m-description');
+      const sData = document.querySelector('#m-date');
+      const sHora = document.querySelector('#m-hour');
 
       modal.classList.add('active');
 
       modal.onclick = e => {
         if (e.target.className.indexOf('modal-container') !== -1) {
           modal.classList.remove('active');
-          sTitle.value = '';
-          sDescription.value = '';
-          sDate.value = '';
-          sHour.value = '';
+          sTitulo.value = '';
+          sDescricao.value = '';
+          sData.value = '';
+          sHora.value = '';
         }
       };
     },
     saveItem() {
-      const title = document.getElementById('m-title').value;
-      const description = document.getElementById('m-description').value;
-      const date = document.getElementById('m-date').value;
-      const hour = document.getElementById('m-hour').value;
+      const titulo = document.getElementById('m-title').value;
+      const descricao = document.getElementById('m-description').value;
+      const data = document.getElementById('m-date').value;
+      const hora = document.getElementById('m-hour').value;
 
-      if (title.trim() === '' || description.trim() === '' || date.trim() === '' || hour.trim() === '') {
+      if (titulo.trim() === '' || descricao.trim() === '' || data.trim() === '' || hora.trim() === '') {
         alert('Por favor, preencha todos os campos.');
         return;
       }
 
       const newItem = {
-        title: title,
-        description: description,
-        date: date,
-        hour: hour
+        title: titulo,
+        description: descricao,
+        date: data,
+        time: hora
       };
-    
-      axios.post('http://localhost:8080/reunioes/', newItem).then(response => {
-        console.log(response.data);
-        this.insertItem(newItem);
-      })
-      .catch(error => {
-        console.error('Erro ao enviar dados:', error);
-      });
+      
+      axios.post('http://localhost:3000/newassembleia/', newItem)
+        .then(response => {
+          console.log(response.data);
+          this.insertItem(newItem);
+        }) 
+        .catch(error => {
+          console.error('Erro ao enviar dados:', error);
+        });
     },
     insertItem(item) {
       let tr = document.createElement('tr');
@@ -101,11 +102,10 @@ export default {
         <td>${item.title}</td>
         <td>${item.description}</td>
         <td>${item.date}</td>
-        <td>${item.hour}</td>
+        <td>${item.time}</td>
         <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
-        <td class="action"><button @click="deleteItem(item)"><i class='bx bx-trash'></i></button></td>
+        <td class="action"><button @click="deleteItem(item.id)"><i class='bx bx-trash'></i></button></td>
       `;
-    
       document.querySelector('tbody').appendChild(tr);
     }
   }
