@@ -21,6 +21,12 @@
           </tr>
         </thead>
         <tbody>
+          <tr v-for="(lostfound, index) in lostfounds" :key="index">
+            <td>{{ lostfound.title }}</td>
+            <td>{{ lostfound.description }}</td>
+            <td class="action"><button @click="editItem(lostfound)"><i class='bx bx-edit'></i></button></td>
+            <td class="action"><button @click="deleteItem(lostfound.id)"><i class='bx bx-trash'></i></button></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -29,9 +35,9 @@
       <div class="modal">
         <form>
           <label for="m-title">Título</label>
-          <input id="m-title" type="text" required/>
+          <input id="m-title" v-model="newlostfound.title" type="text" required/>
           <label for="m-description">Descrição</label>
-          <input id="m-description" type="text" required/>
+          <input id="m-description" v-model="newlostfound.description" type="text" required/>
           <button @click.prevent="saveItem">Salvar</button>
         </form>
       </div>
@@ -40,109 +46,90 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
+  data() {
+    return {
+      lostfounds: [], 
+      newlostfound: {
+        title: '',
+        description: ''
+      }
+    };
+  },
   methods: {
-    toggleDarkMode() {
-      this.isDarkMode = !this.isDarkMode;
-    },
     openModal() {
       const modal = document.querySelector('.modal-container');
-      const sTitle = document.querySelector('#m-title');
-      const sDescription = document.querySelector('#m-description');
-
       modal.classList.add('active');
 
-      modal.onclick = e => {
-        if (e.target.className.indexOf('modal-container') !== -1) {
-          modal.classList.remove('active');
-          sTitle.value = '';
-          sDescription.value = '';
-        }
-      };
+      modal.addEventListener('click', this.closeModalOutside);
+    },
+    closeModalOutside(event) {
+      const modal = document.querySelector('.modal-container');
+
+      if (!event.target.closest('.modal')) {
+        modal.classList.remove('active');
+
+        modal.removeEventListener('click', this.closeModalOutside);
+      }
     },
     saveItem() {
-      const title = document.getElementById('m-title').value;
-      const description = document.getElementById('m-description').value;
-
-      if (title.trim() === '' || description.trim() === '') {
+      if (!this.newlostfound.title || !this.newlostfound.description ) {
         alert('Por favor, preencha todos os campos.');
         return;
       }
-
-      const newItem = {
-        title: title,
-        description: description
-      };
-
-      this.insertItem(newItem);
+  
+      axios.post('http://localhost:3000/newachadoperdido', this.newlostfound)
+        .then(response => {
+          console.log(response.data);
+          this.lostfounds.push(response.data);
+          this.newlostfound = {
+            title: '',
+            description: ''
+          };
+          const modal = document.querySelector('.modal-container');
+          modal.classList.remove('active');
+        })
+        .catch(error => {
+          console.error('Erro ao enviar dados:', error);
+        });
     },
-    insertItem(item) {
-      let tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.title}</td>
-        <td>${item.description}</td>
-        <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
-        <td class="action"><button @click="deleteItem(item)"><i class='bx bx-trash'></i></button></td>
-      `;
+    editItem(item) {
+      axios.put(`http://localhost:3000/newassembleia/${item.id}`, item)
+        .then(response => {
+          console.log('Reunião editada com sucesso:', response.data);
+        })
+        .catch(error => {
+          console.error('Erro ao editar reunião:', error);
+        });
+    },
+    deleteItem(id) {
+      const confirmDelete = confirm('Tem certeza que deseja excluir?');
+      
+      if (confirmDelete) {
+        axios.delete(`http://localhost:3000/newachadoperdido/${id}`)
+          .then(response => {
+            console.log('Achado e perdido excluído com sucesso:', response.data);
 
-      document.querySelector('tbody').appendChild(tr);
+            this.lostfounds = this.lostfounds.filter(lostfound => lostfound.id !== id);
+          })
+          .catch(error => {
+            console.error('Erro ao excluir achado e perdido:', error);
+          });
+      }
     }
+  },
+  mounted() {
+     axios.get('http://localhost:3000/newachadoperdido')
+       .then(response => {
+         this.lostfounds = response.data;
+       })
+       .catch(error => {
+         console.error('Erro ao carregar achados e perdidos:', error);
+       });
   }
 }
-/*import axios from 'axios';
-
-export default {
-  methods: {
-    openModal() {
-      const modal = document.querySelector('.modal-container');
-      const sTitle = document.querySelector('#m-title');
-      const sDescription = document.querySelector('#m-description');
-
-      modal.classList.add('active');
-
-      modal.onclick = e => {
-        if (e.target.className.indexOf('modal-container') !== -1) {
-          modal.classList.remove('active');
-          sTitle.value = '';
-          sDescription.value = '';
-        }
-      };
-    },
-    saveItem() {
-      const title = document.getElementById('m-title').value;
-      const description = document.getElementById('m-description').value;
-
-      if (title.trim() === '' || description.trim() === '') {
-        alert('Por favor, preencha todos os campos.');
-        return;
-      }
-
-      const newItem = {
-        title: title,
-        description: description
-      };
-    
-      axios.post('http://localhost:8080/achados-perdidos/', newItem).then(response => {
-        console.log(response.data);
-        this.insertItem(newItem);
-      })
-      .catch(error => {
-        console.error('Erro ao enviar dados:', error);
-      });
-    },
-    insertItem(item) {
-      let tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.title}</td>
-        <td>${item.description}</td>
-        <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
-        <td class="action"><button @click="deleteItem(item)"><i class='bx bx-trash'></i></button></td>
-      `;
-    
-      document.querySelector('tbody').appendChild(tr);
-    }
-  }
-}*/
 </script>
 
 <style>

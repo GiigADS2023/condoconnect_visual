@@ -28,7 +28,7 @@
             <td>{{ meeting.description }}</td>
             <td>{{ meeting.date }}</td>
             <td>{{ meeting.time }}</td>
-            <td class="action"><button @click="openEditModal(meeting)"><i class='bx bx-edit'></i></button></td>
+            <td class="action"><button @click="editItem(meeting)"><i class='bx bx-edit'></i></button></td>
             <td class="action"><button @click="deleteItem(meeting.id)"><i class='bx bx-trash'></i></button></td>
           </tr>
         </tbody>
@@ -72,16 +72,15 @@ export default {
     openModal() {
       const modal = document.querySelector('.modal-container');
       modal.classList.add('active');
-      
-      // Adicione um event listener para fechar o modal quando clicar fora dele
+
       modal.addEventListener('click', this.closeModalOutside);
     },
     closeModalOutside(event) {
       const modal = document.querySelector('.modal-container');
-      // Verifique se o clique foi fora do modal ou não
+
       if (!event.target.closest('.modal')) {
         modal.classList.remove('active');
-        // Remova o event listener após fechar o modal
+
         modal.removeEventListener('click', this.closeModalOutside);
       }
     },
@@ -108,7 +107,14 @@ export default {
           console.error('Erro ao enviar dados:', error);
         });
     },
-    editItem() {
+    editItem(item) {
+      axios.put(`http://localhost:3000/newassembleia/${item.id}`, item)
+        .then(response => {
+          console.log('Reunião editada com sucesso:', response.data);
+        })
+        .catch(error => {
+          console.error('Erro ao editar reunião:', error);
+        });
     },
     deleteItem(id) {
       // Confirmação através de um alerta
