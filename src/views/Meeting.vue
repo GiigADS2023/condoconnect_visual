@@ -6,7 +6,7 @@
 
   <div class="container">
     <div class="header">
-      <i class="bx bx-user-voice icon" ><span>Reuniões</span></i>    
+      <i class="bx bx-user-voice icon"><span>Reuniões</span></i>
       <button @click="openModal" id="new">Criar Reunião</button>
     </div>
 
@@ -23,6 +23,14 @@
           </tr>
         </thead>
         <tbody>
+          <tr v-for="(meeting, index) in meetings" :key="index">
+            <td>{{ meeting.title }}</td>
+            <td>{{ meeting.description }}</td>
+            <td>{{ meeting.date }}</td>
+            <td>{{ meeting.time }}</td>
+            <td class="action"><button @click="openEditModal(meeting)"><i class='bx bx-edit'></i></button></td>
+            <td class="action"><button @click="deleteItem(meeting.id)"><i class='bx bx-trash'></i></button></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -31,13 +39,13 @@
       <div class="modal">
         <form>
           <label for="m-title">Título</label>
-          <input id="m-title" type="text" required/>
+          <input id="m-title" v-model="newMeeting.title" type="text" required/>
           <label for="m-description">Descrição</label>
-          <input id="m-description" type="text" required/>
+          <input id="m-description" v-model="newMeeting.description" type="text" required/>
           <label for="m-date">Data</label>
-          <input id="m-date" type="date" required/>
+          <input id="m-date" v-model="newMeeting.date" type="date" required/>
           <label for="m-hour">Hora</label>
-          <input id="m-hour" type="time" required/>
+          <input id="m-hour" v-model="newMeeting.time" type="time" required/>
           <button @click.prevent="saveItem">Salvar</button>
         </form>
       </div>
@@ -49,65 +57,87 @@
 import axios from 'axios';
 
 export default {
+  data() {
+    return {
+      meetings: [], // Array para armazenar as reuniões
+      newMeeting: {
+        title: '',
+        description: '',
+        date: '',
+        time: ''
+      }
+    };
+  },
   methods: {
     openModal() {
       const modal = document.querySelector('.modal-container');
-      const sTitulo = document.querySelector('#m-title');
-      const sDescricao = document.querySelector('#m-description');
-      const sData = document.querySelector('#m-date');
-      const sHora = document.querySelector('#m-hour');
-
       modal.classList.add('active');
-
-      modal.onclick = e => {
-        if (e.target.className.indexOf('modal-container') !== -1) {
-          modal.classList.remove('active');
-          sTitulo.value = '';
-          sDescricao.value = '';
-          sData.value = '';
-          sHora.value = '';
-        }
-      };
+      
+      // Adicione um event listener para fechar o modal quando clicar fora dele
+      modal.addEventListener('click', this.closeModalOutside);
+    },
+    closeModalOutside(event) {
+      const modal = document.querySelector('.modal-container');
+      // Verifique se o clique foi fora do modal ou não
+      if (!event.target.closest('.modal')) {
+        modal.classList.remove('active');
+        // Remova o event listener após fechar o modal
+        modal.removeEventListener('click', this.closeModalOutside);
+      }
     },
     saveItem() {
-      const titulo = document.getElementById('m-title').value;
-      const descricao = document.getElementById('m-description').value;
-      const data = document.getElementById('m-date').value;
-      const hora = document.getElementById('m-hour').value;
-
-      if (titulo.trim() === '' || descricao.trim() === '' || data.trim() === '' || hora.trim() === '') {
+        if (!this.newMeeting.title || !this.newMeeting.description || !this.newMeeting.date || !this.newMeeting.time) {
         alert('Por favor, preencha todos os campos.');
         return;
       }
-
-      const newItem = {
-        title: titulo,
-        description: descricao,
-        date: data,
-        time: hora
-      };
-      
-      axios.post('http://localhost:3000/newassembleia/', newItem)
+  
+      axios.post('http://localhost:3000/newassembleia/', this.newMeeting)
         .then(response => {
           console.log(response.data);
-          this.insertItem(newItem);
-        }) 
+          this.meetings.push({ ...this.newMeeting });
+          this.newMeeting = {
+            title: '',
+            description: '',
+            date: '',
+            time: ''
+          };
+          const modal = document.querySelector('.modal-container');
+          modal.classList.remove('active');
+        })
         .catch(error => {
           console.error('Erro ao enviar dados:', error);
         });
     },
-    insertItem(item) {
-      let tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.title}</td>
-        <td>${item.description}</td>
-        <td>${item.date}</td>
-        <td>${item.time}</td>
-        <td class="action"><button @click="editItem(item)"><i class='bx bx-edit'></i></button></td>
-        <td class="action"><button @click="deleteItem(item.id)"><i class='bx bx-trash'></i></button></td>
-      `;
-      document.querySelector('tbody').appendChild(tr);
+    editItem() {
+    },
+    deleteItem(id) {
+      // Confirmação através de um alerta
+      const confirmDelete = confirm('Tem certeza que deseja excluir esta reunião?');
+      
+      // Se o usuário confirmar a exclusão
+      if (confirmDelete) {
+        // Envie uma solicitação DELETE para excluir a reunião na API fake
+        axios.delete(`http://localhost:3000/newassembleia/${id}`)
+          .then(response => {
+            console.log('Reunião excluída com sucesso:', response.data);
+            
+            // Remova a reunião da lista de reuniões localmente
+            this.meetings = this.meetings.filter(meeting => meeting.id !== id);
+          })
+          .catch(error => {
+            console.error('Erro ao excluir reunião:', error);
+          });
+      }
     }
+  },
+  mounted() {
+     axios.get('http://localhost:3000/newassembleia/')
+       .then(response => {
+         this.meetings = response.data;
+       })
+       .catch(error => {
+         console.error('Erro ao carregar reuniões:', error);
+       });
   }
 }
 </script>
