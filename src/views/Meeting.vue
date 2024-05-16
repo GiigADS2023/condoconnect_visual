@@ -7,10 +7,10 @@
   <div class="container">
     <div class="header">
       <i class="bx bx-user-voice icon"><span>Reuniões</span></i>
-      <button @click="openModal" id="new">Criar Reunião</button>
+      <button @click="openModal(null)" id="new">Criar Reunião</button>
     </div>
 
-    <div class="table">
+    <div class="divTable">
       <table>
         <thead>
           <tr>
@@ -28,7 +28,7 @@
             <td>{{ meeting.description }}</td>
             <td>{{ meeting.date }}</td>
             <td>{{ meeting.time }}</td>
-            <td class="action"><button @click="editItem(meeting)"><i class='bx bx-edit'></i></button></td>
+            <td class="action"><button @click="openModal(meeting)"><i class='bx bx-edit'></i></button></td>
             <td class="action"><button @click="deleteItem(meeting.id)"><i class='bx bx-trash'></i></button></td>
           </tr>
         </tbody>
@@ -46,7 +46,7 @@
           <input id="m-date" v-model="newMeeting.date" type="date" required/>
           <label for="m-hour">Hora</label>
           <input id="m-hour" v-model="newMeeting.time" type="time" required/>
-          <button @click.prevent="saveItem">Salvar</button>
+          <button @click.prevent="saveItem">{{ isEditing ? 'Atualizar' : 'Salvar' }}</button>
         </form>
       </div>
     </div>
@@ -59,96 +59,117 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      meetings: [], // Array para armazenar as reuniões
+      meetings: [],
       newMeeting: {
         title: '',
         description: '',
         date: '',
         time: ''
-      }
+      },
+      isEditing: false,
+      editId: null
     };
   },
   methods: {
-    openModal() {
+    openModal(meeting) {
+      if (meeting) {
+        this.isEditing = true;
+        this.newMeeting = { ...meeting };
+        this.editId = meeting.id;
+      } else {
+        this.isEditing = false;
+        this.editId = null;
+        this.resetForm();
+      }
       const modal = document.querySelector('.modal-container');
       modal.classList.add('active');
-
       modal.addEventListener('click', this.closeModalOutside);
     },
     closeModalOutside(event) {
       const modal = document.querySelector('.modal-container');
-
       if (!event.target.closest('.modal')) {
         modal.classList.remove('active');
-
         modal.removeEventListener('click', this.closeModalOutside);
       }
     },
     saveItem() {
-        if (!this.newMeeting.title || !this.newMeeting.description || !this.newMeeting.date || !this.newMeeting.time) {
+      if (!this.newMeeting.title || !this.newMeeting.description || !this.newMeeting.date || !this.newMeeting.time) {
         alert('Por favor, preencha todos os campos.');
         return;
       }
-  
-      axios.post('http://localhost:3000/newassembleia/', this.newMeeting)
+      if (this.isEditing) {
+        this.updateItem();
+      } else {
+        this.createItem();
+      }
+    },
+    createItem() {
+      axios.post('http://localhost:3000/newassembleia', this.newMeeting)
         .then(response => {
           console.log(response.data);
-          this.meetings.push({ ...this.newMeeting });
-          this.newMeeting = {
-            title: '',
-            description: '',
-            date: '',
-            time: ''
-          };
-          const modal = document.querySelector('.modal-container');
-          modal.classList.remove('active');
+          this.meetings.push(response.data);
+          this.resetForm();
+          this.closeModal();
         })
         .catch(error => {
           console.error('Erro ao enviar dados:', error);
         });
     },
-    editItem(item) {
-      axios.put(`http://localhost:3000/newassembleia/${item.id}`, item)
+    updateItem() {
+      axios.put(`http://localhost:3000/newassembleia/${this.editId}`, this.newMeeting)
         .then(response => {
-          console.log('Reunião editada com sucesso:', response.data);
+          console.log('Reunião atualizada com sucesso:', response.data);
+          const index = this.meetings.findIndex(item => item.id === this.editId);
+          if (index !== -1) {
+            this.meetings.splice(index, 1, response.data);
+          }
+          this.resetForm();
+          this.closeModal();
         })
         .catch(error => {
-          console.error('Erro ao editar reunião:', error);
+          console.error('Erro ao atualizar reunião:', error);
         });
     },
     deleteItem(id) {
-      // Confirmação através de um alerta
-      const confirmDelete = confirm('Tem certeza que deseja excluir esta reunião?');
-      
-      // Se o usuário confirmar a exclusão
+      const confirmDelete = confirm('Tem certeza que deseja excluir?');
       if (confirmDelete) {
-        // Envie uma solicitação DELETE para excluir a reunião na API fake
         axios.delete(`http://localhost:3000/newassembleia/${id}`)
           .then(response => {
             console.log('Reunião excluída com sucesso:', response.data);
-            
-            // Remova a reunião da lista de reuniões localmente
             this.meetings = this.meetings.filter(meeting => meeting.id !== id);
           })
           .catch(error => {
             console.error('Erro ao excluir reunião:', error);
           });
       }
+    },
+    resetForm() {
+      this.newMeeting = {
+        title: '',
+        description: '',
+        date: '',
+        time: ''
+      };
+    },
+    closeModal() {
+      const modal = document.querySelector('.modal-container');
+      modal.classList.remove('active');
+      modal.removeEventListener('click', this.closeModalOutside);
     }
   },
   mounted() {
-     axios.get('http://localhost:3000/newassembleia/')
-       .then(response => {
-         this.meetings = response.data;
-       })
-       .catch(error => {
-         console.error('Erro ao carregar reuniões:', error);
-       });
+    axios.get('http://localhost:3000/newassembleia')
+      .then(response => {
+        this.meetings = response.data;
+      })
+      .catch(error => {
+        console.error('Erro ao carregar reuniões:', error);
+      });
   }
 }
 </script>
 
-<style>
+<style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;700&family=Roboto:wght@100;300;400;500;700;900&family=Source+Sans+Pro:wght@200;300;400;600;700;900&display=swap');
 
 * {

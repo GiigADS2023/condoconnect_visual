@@ -7,7 +7,7 @@
   <div class="container">
     <div class="header">
       <i class="bx bx-like icon"><span>Achados e Perdidos</span></i>    
-      <button @click="openModal" id="new">Criar Achados e Perdidos</button>
+      <button @click="openModal(null)" id="new">Criar Achados e Perdidos</button>
     </div>
 
     <div class="divTable">
@@ -24,7 +24,7 @@
           <tr v-for="(lostfound, index) in lostfounds" :key="index">
             <td>{{ lostfound.title }}</td>
             <td>{{ lostfound.description }}</td>
-            <td class="action"><button @click="editItem(lostfound)"><i class='bx bx-edit'></i></button></td>
+            <td class="action"><button @click="openModal(lostfound)"><i class='bx bx-edit'></i></button></td>
             <td class="action"><button @click="deleteItem(lostfound.id)"><i class='bx bx-trash'></i></button></td>
           </tr>
         </tbody>
@@ -35,10 +35,10 @@
       <div class="modal">
         <form>
           <label for="m-title">Título</label>
-          <input id="m-title" v-model="newlostfound.title" type="text" required/>
+          <input id="m-title" v-model="newLostFound.title" type="text" required/>
           <label for="m-description">Descrição</label>
-          <input id="m-description" v-model="newlostfound.description" type="text" required/>
-          <button @click.prevent="saveItem">Salvar</button>
+          <input id="m-description" v-model="newLostFound.description" type="text" required/>
+          <button @click.prevent="saveItem">{{ isEditing ? 'Atualizar' : 'Salvar' }}</button>
         </form>
       </div>
     </div>
@@ -51,88 +51,113 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      lostfounds: [], 
-      newlostfound: {
+      lostfounds: [],
+      newLostFound: {
         title: '',
         description: ''
-      }
+      },
+      isEditing: false,
+      editId: null
     };
   },
   methods: {
-    openModal() {
+    openModal(lostfound) {
+      if (lostfound) {
+        this.isEditing = true;
+        this.newLostFound = { ...lostfound };
+        this.editId = lostfound.id;
+      } else {
+        this.isEditing = false;
+        this.editId = null;
+        this.resetForm();
+      }
       const modal = document.querySelector('.modal-container');
       modal.classList.add('active');
-
       modal.addEventListener('click', this.closeModalOutside);
     },
     closeModalOutside(event) {
       const modal = document.querySelector('.modal-container');
-
       if (!event.target.closest('.modal')) {
         modal.classList.remove('active');
-
         modal.removeEventListener('click', this.closeModalOutside);
       }
     },
     saveItem() {
-      if (!this.newlostfound.title || !this.newlostfound.description ) {
+      if (!this.newLostFound.title || !this.newLostFound.description) {
         alert('Por favor, preencha todos os campos.');
         return;
       }
-  
-      axios.post('http://localhost:3000/newachadoperdido', this.newlostfound)
+      if (this.isEditing) {
+        this.updateItem();
+      } else {
+        this.createItem();
+      }
+    },
+    createItem() {
+      axios.post('http://localhost:3000/newachadoperdido', this.newLostFound)
         .then(response => {
           console.log(response.data);
           this.lostfounds.push(response.data);
-          this.newlostfound = {
-            title: '',
-            description: ''
-          };
-          const modal = document.querySelector('.modal-container');
-          modal.classList.remove('active');
+          this.resetForm();
+          this.closeModal();
         })
         .catch(error => {
           console.error('Erro ao enviar dados:', error);
         });
     },
-    editItem(item) {
-      axios.put(`http://localhost:3000/newassembleia/${item.id}`, item)
+    updateItem() {
+      axios.put(`http://localhost:3000/newachadoperdido/${this.editId}`, this.newLostFound)
         .then(response => {
-          console.log('Reunião editada com sucesso:', response.data);
+          console.log('Achado e perdido atualizado com sucesso:', response.data);
+          const index = this.lostfounds.findIndex(item => item.id === this.editId);
+          if (index !== -1) {
+            this.lostfounds.splice(index, 1, response.data);
+          }
+          this.resetForm();
+          this.closeModal();
         })
         .catch(error => {
-          console.error('Erro ao editar reunião:', error);
+          console.error('Erro ao atualizar achado e perdido:', error);
         });
     },
     deleteItem(id) {
       const confirmDelete = confirm('Tem certeza que deseja excluir?');
-      
       if (confirmDelete) {
         axios.delete(`http://localhost:3000/newachadoperdido/${id}`)
           .then(response => {
             console.log('Achado e perdido excluído com sucesso:', response.data);
-
             this.lostfounds = this.lostfounds.filter(lostfound => lostfound.id !== id);
           })
           .catch(error => {
             console.error('Erro ao excluir achado e perdido:', error);
           });
       }
+    },
+    resetForm() {
+      this.newLostFound = {
+        title: '',
+        description: ''
+      };
+    },
+    closeModal() {
+      const modal = document.querySelector('.modal-container');
+      modal.classList.remove('active');
+      modal.removeEventListener('click', this.closeModalOutside);
     }
   },
   mounted() {
-     axios.get('http://localhost:3000/newachadoperdido')
-       .then(response => {
-         this.lostfounds = response.data;
-       })
-       .catch(error => {
-         console.error('Erro ao carregar achados e perdidos:', error);
-       });
+    axios.get('http://localhost:3000/newachadoperdido')
+      .then(response => {
+        this.lostfounds = response.data;
+      })
+      .catch(error => {
+        console.error('Erro ao carregar achados e perdidos:', error);
+      });
   }
 }
 </script>
 
-<style>
+<style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;700&family=Roboto:wght@100;300;400;500;700;900&family=Source+Sans+Pro:wght@200;300;400;600;700;900&display=swap');
 
 * {
